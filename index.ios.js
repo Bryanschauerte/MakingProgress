@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import BleedingEdgeApplication from './app/App';
 
-import rootReducer from './rootReducer'
+import rootReducer from './store/rootReducer'
 import configureStore from './store/storeConfig';
 import { Provider } from 'react-redux'
 const store = configureStore();

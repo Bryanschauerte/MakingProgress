@@ -1,75 +1,68 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux'
-import { NavigationExperimental, Text } from 'react-native';
-import MyVerySimpleNavigator from './MyVerySimpleNavigator';
-
+import { NavigationExperimental, Text, AsyncStorage } from 'react-native';
+import BaseNavigator from './BaseNavigator';
+import * as navActions from '../store/navigation/actions/navigation';
+import * as goalActions from '../store/goals/actions/goalHandling'
 
 const {
   CardStack: NavigationCardStack,
   StateUtils: NavigationStateUtils,
 } = NavigationExperimental;
 
-// const navigationRoute = {
-//   key:string,
-//   title?:'string'
-// }
-
 class BleedingEdgeApplication extends Component {
   constructor(props, context) {
     super(props, context);
-
-    this.state = {
-      // This defines the initial navigation state.
-      navigationState: {
-        index: 0, // Starts with first route focused.
-        routes: [//array with navigationRoute(s)
-          {
-            key: 'My Initial Scene'
-          },
-          {
-            key: 'home'
-          }], // Starts with only one route.
-      },
-    };
-
-    // We'll define this function later - hang on
     this._onNavigationChange = this._onNavigationChange.bind(this);
+    this._manageUserData = this._manageUserData.bind(this);
   }
 
-  _onNavigationChange(type) {
-    // Extract the navigationState from the current state:
-    let {navigationState} = this.state;
+  _onNavigationChange(type, route) {
 
     switch (type) {
       case 'push':
-        // Push a new route, which in our case is an object with a key value.
-        // I am fond of cryptic keys (but seriously, keys should be unique)
-        const route = {key: 'Route-' + Date.now()};
-        // Use the push reducer provided by NavigationStateUtils
-        navigationState = NavigationStateUtils.push(navigationState, route);
+        this.props.nextRoute();
+        break;
+      case 'goTo':
+        this.props.goTo(route);
         break;
 
       case 'pop':
-        // Pop the current route using the pop reducer.
-        console.log('pop')
-        navigationState = NavigationStateUtils.pop(navigationState);
+        this.props.backRoute();
         break;
     }
 
-    // NavigationStateUtils gives you back the same `navigationState` if nothing
-    // has changed. We will only update state if it has changed.
-    if (this.state.navigationState !== navigationState) {
-      // Always use setState() when setting a new state!
-      this.setState({navigationState});
-      // If you are new to ES6, the above is equivalent to:
-      // this.setState({navigationState: navigationState});
+  }
+  componentDidMount(){
+
+  }
+  _manageUserData(type, info){
+    switch (type) {
+      case 'getOne':
+        AsyncStorage.getItem(info.key, this.props.personalize(type, info));
+      break;
+    case 'getMany':
+    AsyncStorage.getAllKeys((err, keys) => {
+      AsyncStorage.multiGet(keys, (err, stores) => {
+       stores.map((result, i, store) => {
+         let key = store[i][0];
+         let value = store[i][1];
+        });
+      });
+    });
+
+    break;
+    case 'save':
+      AsyncStorage.setItem(info.key, JSON.stringify(info));
+      break;
+      default:
+
     }
   }
-
   render() {
     return (
-      <MyVerySimpleNavigator
-        navigationState={this.state.navigationState}
+      <BaseNavigator
+        navigationState={this.props.navigationState}
         onNavigationChange={this._onNavigationChange}
         onExit={this._exit}
       />
@@ -79,15 +72,22 @@ class BleedingEdgeApplication extends Component {
 
 
 function mapStateToProps (state) {
-  console.log(state, "state from connected APp")
-  return {
 
+  return {
+    navigationState: state.navigation.navigation
   }
 }
 
 function mapDispatchToProps (dispatch) {
   return {
-    push: (route) => dispatch(push(route))
+    nextRoute: () => dispatch(navActions.nextRoute()),
+    pushRoute: (route) => dispatch(navActions.pushRoute(route)),
+    backRoute: () => dispatch(navActions.backRoute()),
+    goTo:      (route) =>dispatch(navActions.goTo(route)),
+    personalize:(type, info) =>dispatch(
+      goalActions.populateStoredGoals(type, info)
+    )
+
   }
 }
 
